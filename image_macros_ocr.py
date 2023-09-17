@@ -24,7 +24,7 @@ def filter_for_text_color(image, text_color_filter=lambda p: p > 200):
 
     return image
 
-def extract_text(image_path, template_path, white_text=True):
+def isolate_image_text(image_path, template_path, white_text=True):
     # Open images using Pillow and remove alpha channel
     image = Image.open(image_path).convert('RGB')
     template = Image.open(template_path).convert('RGB')
@@ -52,12 +52,38 @@ def extract_text(image_path, template_path, white_text=True):
     # Keep pixels which are in bw_image and not in bw_template
     text_image = ImageChops.logical_and(bw_image, bw_template.point(lambda p: not p))
 
-    # Get text from image
-    print(pytesseract.image_to_string(text_image))
-    text_image.show()
+    return text_image
 
+# Returns text in tuple (top text, bottom text). If one of the outputs cannot be found, returns empty string in its place.
+def extract_top_bottom_text(text_image):
+    ocr_data = pytesseract.image_to_data(text_image, output_type=pytesseract.Output.DICT)
+    n_rows = len(ocr_data['level'])
+
+    # Group row indices by block
+    blocks = []
+    for i in range(n_rows):
+        if ocr_data['block_num'][i] >= len(blocks):
+            blocks.append([])
+        blocks[-1].append(i)
+
+    # Generate string represented by each block
+    lines = []
+    for indices in blocks:
+        lines.append(" ".join(ocr_data['text'][i] for i in indices if ocr_data['conf'][i] > 50))
+
+    # Remove empty strings
+    lines = list(line.strip() for line in lines if line and not line.isspace())
+
+    if len(lines) < 2:
+        print("Warning: Could not find top and bottom text in image")
+
+    return (lines[0] if len(lines) > 0 else "", lines[1] if len(lines) > 1 else "")
+
+EXAMPLE_IMAGE_PATH = r'./sample_images/mallard1.jpg'
+EXAMPLE_TEMPLATE_PATH = r'./sample_images/mallard-template.png'
 def main():
-    extract_text(r'./sample_images/dino2.png', r'./sample_images/dino-template.jpg')
+    text_image = isolate_image_text(EXAMPLE_IMAGE_PATH, EXAMPLE_TEMPLATE_PATH)
+    print(extract_top_bottom_text(text_image))
 
 if __name__ == '__main__':
     main()
