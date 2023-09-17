@@ -12,7 +12,7 @@ def split_macro_text(template_width, text, max_lines=3):
     max_chars = (template_width - TEXT_MARGINS) // FONT_AVE_CHAR_WIDTH
     return '\n'.join(textwrap.wrap(text, max_chars, max_lines=max_lines))
 
-def generate_macro(template, top_text, bottom_text, max_lines=2):
+def generate_macro(template, top_text, bottom_text, max_lines=4):
     image = template.copy()
     font = ImageFont.truetype(FONT_PATH, FONT_SIZE)
     draw = ImageDraw.Draw(image)
