@@ -1,0 +1,94 @@
+<!-- This frontend was cobbled together in 3 hours after midnight and I couldn't be more satisfied -->
+<html>
+	<body>
+		<form method="POST" id="image-form">
+			<label for="image-form-template-image">Template Image:</label>
+			<input type="file" name="template-image" id="image-form-template-image">
+			<label for="image-form-images">Example Images:</label>
+			<input type="file" multiple name="example-images" id="image-form-images">
+			<label id="image-form-loading" style="display:none; color:red">Loading...</label>
+			<input type="submit" value="Submit">
+		</form>
+		<table id="image-table"></table>
+		<form method="POST" id="generate-form">
+			<label for="generate-form-topic">Product Name:</label>
+			<input type="text" name="topic" id="generate-form-topic">
+			<label for="generate-form-top-text">Top Text:</label>
+			<input type="text" name="top-text" id="generate-form-top-text">
+			<label id="generate-form-loading" style="display:none; color:red">Loading...</label>
+			<input type="submit" value="Submit">
+		</form>
+		<div id="generated-macros"></div>
+
+		<script>
+			// Global variables :)
+			var template;
+			var examples;
+
+			imageForm = document.querySelector("#image-form");
+			imageForm.addEventListener("submit", function(event) {
+				event.preventDefault();
+				document.querySelector("#image-form-loading").style.display = "";
+				formData = new FormData(imageForm);
+				template = formData.get('template-image');
+				fetch('/ocr-text', {
+					method: 'POST',
+					body: formData
+				})
+				.then(response => response.json())
+				.then(response => {
+					// Load data in table
+					table = document.querySelector("#image-table");
+					table.innerHTML = `
+						<thead>
+							<tr>
+								<th>Original Image</th>
+								<th>Processed Image</th>
+								<th>Extracted Text</th>
+							</tr>
+						</thead>
+						<tbody></tbody>
+					`;
+					examples = [];
+					for (row of response) {
+						examples.push(row.text);
+						table.querySelector("tbody").innerHTML += `
+							<tr>
+								<td><img src='${row.original}'></td>
+								<td><img src='${row.processed}'></td>
+								<td><pre>${row.text[0]}\n\n${row.text[1]}</pre></td>
+							</tr>
+						`;
+					}
+				})
+				.catch(error => console.log(error))
+				.finally(() => {
+					document.querySelector("#image-form-loading").style.display = "none";
+				});
+			});
+			generateForm = document.querySelector("#generate-form");
+			generateForm.addEventListener("submit", function(event) {
+				event.preventDefault();
+				document.querySelector("#generate-form-loading").style.display = "";
+				formData = new FormData(generateForm);
+				formData.append('template-image', template);
+				formData.append('examples', JSON.stringify(examples));
+				fetch('/generate-macros', {
+					method: 'POST',
+					body: formData
+				})
+				.then(response => response.json())
+				.then(response => {
+					macrosDiv = document.querySelector("#generated-macros");
+					for (image of response) {
+						macrosDiv.innerHTML += `<img src=${image} style="margin: 5px">`
+					}
+				})
+				.catch(error => console.log(error))
+				.finally(() => {
+					document.querySelector("#generate-form-loading").style.display = "none";
+				});
+			});
+		</script>
+	</body>
+</html>
