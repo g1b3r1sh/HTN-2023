@@ -24,10 +24,10 @@ def filter_for_text_color(image, text_color_filter=lambda p: p > 200):
 
     return image
 
-def isolate_image_text(image_path, template_path, white_text=True):
-    # Open images using Pillow and remove alpha channel
-    image = Image.open(image_path).convert('RGB')
-    template = Image.open(template_path).convert('RGB')
+def isolate_image_text(image, template, white_text=True):
+    # Remove alpha channels from images
+    image = image.convert('RGB')
+    template = template.convert('RGB')
 
     # Set resize size to smaller size between two images
     resize_size = image.size if sum(image.size) <= sum(template.size) else template.size
@@ -82,7 +82,10 @@ def extract_top_bottom_text(text_image):
 EXAMPLE_IMAGE_PATH = r'./sample_images/mallard1.jpg'
 EXAMPLE_TEMPLATE_PATH = r'./sample_images/mallard-template.png'
 def main():
-    text_image = isolate_image_text(EXAMPLE_IMAGE_PATH, EXAMPLE_TEMPLATE_PATH)
+    text_image = isolate_image_text(
+        Image.open(EXAMPLE_IMAGE_PATH),
+        Image.open(EXAMPLE_TEMPLATE_PATH)
+    )
     print(extract_top_bottom_text(text_image))
 
 if __name__ == '__main__':
